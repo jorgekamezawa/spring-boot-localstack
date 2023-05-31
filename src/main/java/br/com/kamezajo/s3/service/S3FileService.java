@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Service
 public class S3FileService {
 
-    @Value("${s3.bucket}")
+    @Value("${s3Bucket}")
     private String directory;
 
     @Autowired

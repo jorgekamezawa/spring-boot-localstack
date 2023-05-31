@@ -31,8 +31,7 @@ dependencies {
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws'
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config'
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws-secrets-manager-config'
-
-
+	implementation 'io.awspring.cloud:spring-cloud-starter-aws-messaging'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
