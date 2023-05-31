@@ -1,5 +1,3 @@
 ### Server
 server:
   port: 8080
-
-#s3.bucket: helloworld

@@ -41,5 +41,5 @@ aws --endpoint http://localhost:4566 --profile localstack sqs send-message --que
 aws --endpoint http://localhost:4566 --profile localstack sqs receive-message --queue-url http://localhost:4566/000000000000/sqsHelloWorld
 
 echo ### Criando Queue(Standard) no SNS do LocalStack...
-@REM aws --endpoint http://localhost:4566 --profile localstack sns create-topic --name snsHelloWorld
-@REM aws --endpoint http://localhost:4566 --profile localstack sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:snsHelloWorld --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:sqsHelloWorld
+aws --endpoint http://localhost:4566 --profile localstack sns create-topic --name snsHelloWorld
+aws --endpoint http://localhost:4566 --profile localstack sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:snsHelloWorld --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:sqsHelloWorld
