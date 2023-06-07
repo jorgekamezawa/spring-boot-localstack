@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  Environment:
+    Type: String
+    Description: "Ambiente em uso"
+    Default: "localstack"
+
+Resources:
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: sqsHelloWorld
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: snsHelloWorld
+
+  Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Ref SNSTopic
+      Endpoint: !GetAtt SQSQueue.Arn
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SQSQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sqs:SendMessage
+            Resource: !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref SNSTopic
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: helloworld-afb27938-3540-4ace-b6c6-5a69f171334d
+
+  ParameterStoreHelloWorld:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/helloWorld"
+      Value: "Hello World Parameter Store"
+      Type: String
+
+  ParameterStoreSQSQueueName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/sqsQueueName"
+      Value: "sqsHelloWorld"
+      Type: String
+
+  ParameterStoreSNSNotificationName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/snsNotificationName"
+      Value: "snsHelloWorld"
+      Type: String
+
+  ParameterStoreS3BucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/s3BucketName"
+      Value: !Ref S3Bucket
+      Type: String
+
+  ParameterStoreDBUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_URL"
+      Value: "localhost"
+      Type: String
+
+  ParameterStoreDBUsername:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_USERNAME"
+      Value: "postgres"
+      Type: String
+
+  ParameterStoreDBPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_PASSWORD"
+      Value: "postgres123"
+      Type: String
+
+  SecretsManagerHelloWorld:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: "/secrets/helloWorld"
+      SecretString: '{"param1": "Hello", "param2": "World"}'

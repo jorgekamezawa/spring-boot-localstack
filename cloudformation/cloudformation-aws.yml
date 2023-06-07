@@ -1,0 +1,299 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  MyIP:
+    Type: String
+    Description: "Your IP address in CIDR"
+    Default: "152.244.47.254/32"
+  Environment:
+    Type: String
+    Description: "Ambiente em uso"
+    Default: aws
+    AllowedValues:
+      - aws
+      - localstack
+      - prod
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: The name of an existing Amazon EC2 key pair in this region to use to SSH into the Amazon EC2 instances.
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.1.0.0/16"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "cloudformation-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "cloudformation_igw"
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.1.1.0/24"
+      AvailabilityZone: us-east-1a
+      Tags:
+        - Key: Name
+          Value: "CloudformationPublicSubnet01"
+
+  PublicSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.1.2.0/24"
+      AvailabilityZone: us-east-1b
+      Tags:
+        - Key: Name
+          Value: "CloudformationPublicSubnet02"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: "cloudformation_rtb_public"
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet01
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet02RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet02
+      RouteTableId: !Ref PublicRouteTable
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "CloudformationEc2SecurityGroup"
+      GroupDescription: "Security Group for EC2 instance"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - CidrIp: !Ref MyIP
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "RoleEc2AppLocalstack"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "Policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "VisualEditor0"
+                Effect: "Allow"
+                Action:
+                  - "sns:*"
+                  - "secretsmanager:*"
+                  - "s3:*"
+                  - "ssm:*"
+                  - "sqs:*"
+                Resource: "*"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: "ec2-instance-profile"
+      Path: /
+      Roles:
+        - !Ref IAMRole
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-0715c1897453cabd1"
+      InstanceType: "t2.micro"
+      KeyName: !Ref KeyPairName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref PublicSubnet01
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref EC2SecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y java-17-amazon-corretto
+      Tags:
+        - Key: Name
+          Value: "cloudformation-backend"
+      IamInstanceProfile: !Ref EC2InstanceProfile
+
+  RDSPostgresSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "CloudformationRDSPostgresSecurityGroup"
+      GroupDescription: "Security Group for PostgreSQL Database"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref EC2SecurityGroup
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+        - CidrIp: !Ref MyIP
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+
+  RDSPostgresSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: "cloudformation-rds-postgres-subnet-group"
+      DBSubnetGroupDescription: "Subnet group for RDS PostgreSQL"
+      SubnetIds:
+        - !Ref PublicSubnet01
+        - !Ref PublicSubnet02
+
+  RDSPostgresInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      DBInstanceIdentifier: cloudformation-db
+      EngineVersion: 14.7
+      BackupRetentionPeriod: 0
+      PubliclyAccessible: true
+#      DeletionProtection: true
+      DBName: usuario
+      Engine: postgres
+      MasterUsername: postgres
+      MasterUserPassword: postgres123
+      VPCSecurityGroups:
+        - !Ref RDSPostgresSecurityGroup
+      DBSubnetGroupName: !Ref RDSPostgresSubnetGroup
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: sqsHelloWorld
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: snsHelloWorld
+
+  Subscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Ref SNSTopic
+      Endpoint: !GetAtt SQSQueue.Arn
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SQSQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sqs:SendMessage
+            Resource: !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref SNSTopic
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: helloworld-afb27938-3540-4ace-b6c6-5a69f171334d
+
+  ParameterStoreHelloWorld:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/helloWorld"
+      Value: "Hello World Parameter Store"
+      Type: String
+
+  ParameterStoreSQSQueueName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/sqsQueueName"
+      Value: "sqsHelloWorld"
+      Type: String
+
+  ParameterStoreSNSNotificationName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/snsNotificationName"
+      Value: "snsHelloWorld"
+      Type: String
+
+  ParameterStoreS3BucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/s3BucketName"
+      Value: !Ref S3Bucket
+      Type: String
+
+  ParameterStoreDBUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_URL"
+      Value: !GetAtt RDSPostgresInstance.Endpoint.Address
+      Type: String
+
+  ParameterStoreDBUsername:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_USERNAME"
+      Value: "postgres"
+      Type: String
+
+  ParameterStoreDBPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_PASSWORD"
+      Value: "postgres123"
+      Type: String
+
+  SecretsManagerHelloWorld:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: "/secrets/helloWorld"
+      SecretString: '{"param1": "Hello", "param2": "World"}'

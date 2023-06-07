@@ -5,7 +5,7 @@ spring:
 spring:
   config:
     activate:
-      on-profile: production
+      on-profile: aws
 aws:
   paramstore:
     enabled: true
@@ -15,16 +15,14 @@ aws:
 spring:
   config:
     activate:
-      on-profile:
-        - localstack
+      on-profile: localstack
 
 aws:
   paramstore:
     enabled: true
     endpoint: http://localhost:4566
   secretsmanager:
-    enabled: true
-    endpoint: http://localhost:4566
+    enabled: false
 
 cloud:
   aws:

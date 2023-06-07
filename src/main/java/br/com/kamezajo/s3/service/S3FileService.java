@@ -27,18 +27,17 @@ import java.util.stream.Collectors;
 @Service
 public class S3FileService {
 
-    @Value("${s3Bucket}")
+    @Value("${s3BucketName}")
     private String directory;
 
-    @Autowired
     private ResourceLoader resourceLoader;
 
     private ResourcePatternResolver resourcePatternResolver;
 
     @Autowired
-    public void setupResolver(ApplicationContext applicationContext, AmazonS3 amazonS3) {
-        this.resourcePatternResolver = new PathMatchingSimpleStorageResourcePatternResolver(amazonS3,
-                applicationContext);
+    public void setupResolver(ApplicationContext applicationContext, AmazonS3 amazonS3, ResourceLoader resourceLoader) {
+        this.resourcePatternResolver = new PathMatchingSimpleStorageResourcePatternResolver(amazonS3, applicationContext);
+        this.resourceLoader = resourceLoader;
     }
 
     public boolean isFileExists(String file) {

@@ -9,15 +9,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping
+@RequestMapping("/parameter-store")
 @RequiredArgsConstructor
 public class ParameterStoreController {
 
-    private final ParameterStoreConfiguration parameterStoreConfiguration;
+    private final ParameterStoreConfiguration service;
 
-    @GetMapping("/parameterStoreConfiguration")
-    @ResponseStatus(HttpStatus.CREATED)
-    public String configuration() {
-        return parameterStoreConfiguration.getHelloWorld();
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public String getParameter() {
+        return service.getHelloWorld();
     }
 }

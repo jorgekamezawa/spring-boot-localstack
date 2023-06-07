@@ -2,6 +2,7 @@ package br.com.kamezajo.s3.controller;
 
 import br.com.kamezajo.s3.dto.S3FileDTO;
 import br.com.kamezajo.s3.service.S3FileService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -20,15 +21,15 @@ import java.util.UUID;
 
 @Slf4j
 @Controller
-@RequestMapping("/")
+@RequestMapping("/s3")
+@RequiredArgsConstructor
 public class S3Controller {
 
     private static final String FILE_NOT_EXISTS = "Arquivo não existe";
 
-    @Autowired
-    private S3FileService fileService;
+    private final S3FileService fileService;
 
-    @PostMapping("/s3/files")
+    @PostMapping("/files")
     public ResponseEntity<S3FileDTO> createFile() {
         Path tempFile;
         try {
@@ -45,7 +46,7 @@ public class S3Controller {
         return ResponseEntity.ok(S3FileDTO.getInstance(tempFile.toFile().getName(), null));
     }
 
-    @GetMapping("/s3/files")
+    @GetMapping("/files")
     public ResponseEntity<List<S3FileDTO>> listFiles(@RequestParam("fileName") String fileName) {
         List<S3FileDTO> s3Files = new ArrayList<>();
         try {
@@ -66,7 +67,7 @@ public class S3Controller {
         return ResponseEntity.ok(s3Files);
     }
 
-    @GetMapping("/s3/files/{file}")
+    @GetMapping("/files/{file}")
     public ResponseEntity<S3FileDTO> contentFile(@PathVariable("file") String file) {
         if (fileService.isFileExists(file)) {
             List<Resource> resources = fileService.searchFile(file, true);
