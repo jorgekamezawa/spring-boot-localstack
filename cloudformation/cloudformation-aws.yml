@@ -13,6 +13,10 @@ Parameters:
       - aws
       - localstack
       - prod
+  Region:
+    Type: String
+    Description: "The currenty region"
+    Default: "us-east-1"
   KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: The name of an existing Amazon EC2 key pair in this region to use to SSH into the Amazon EC2 instances.
@@ -46,7 +50,9 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: "10.1.1.0/24"
-      AvailabilityZone: us-east-2a
+      AvailabilityZone: {
+        "Fn::Sub": "${Region}a"
+      }
       Tags:
         - Key: Name
           Value: "cloudformation-subnet-public01"
@@ -56,7 +62,9 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: "10.1.2.0/24"
-      AvailabilityZone: us-east-2b
+      AvailabilityZone: {
+        "Fn::Sub": "${Region}b"
+      }
       Tags:
         - Key: Name
           Value: "cloudformation-subnet-public02"
@@ -301,6 +309,13 @@ Resources:
     Properties:
       Name: !Sub "/config/spring-boot-localstack_${Environment}/DB_PASSWORD"
       Value: "postgres123"
+      Type: String
+
+  InfraRegion:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/config/spring-boot-localstack_${Environment}/region"
+      Value: !Sub "${Region}"
       Type: String
 
   SecretsManagerHelloWorld:

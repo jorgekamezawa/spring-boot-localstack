@@ -1,9 +1,9 @@
 package br.com.kamezajo.secretsmanager.config;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -12,10 +12,13 @@ import org.springframework.context.annotation.Profile;
 @Profile("!localstack")
 public class SecretsConfig {
 
+    @Value("${region}")
+    private String region;
+
     @Bean
     public AWSSecretsManager getSecretV1Prd() {
         return AWSSecretsManagerClientBuilder.standard()
-                .withRegion(Regions.US_EAST_2)
+                .withRegion(region)
                 .withCredentials(new DefaultAWSCredentialsProviderChain())
                 .build();
     }
