@@ -46,20 +46,20 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: "10.1.1.0/24"
-      AvailabilityZone: us-east-1a
+      AvailabilityZone: us-east-2a
       Tags:
         - Key: Name
-          Value: "CloudformationPublicSubnet01"
+          Value: "cloudformation-subnet-public01"
 
   PublicSubnet02:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: "10.1.2.0/24"
-      AvailabilityZone: us-east-1b
+      AvailabilityZone: us-east-2b
       Tags:
         - Key: Name
-          Value: "CloudformationPublicSubnet02"
+          Value: "cloudformation-subnet-public02"
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -92,7 +92,7 @@ Resources:
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "CloudformationEc2SecurityGroup"
+      GroupName: "CloudFormationEc2SecurityGroup"
       GroupDescription: "Security Group for EC2 instance"
       VpcId: !Ref VPC
       SecurityGroupIngress:
@@ -142,7 +142,9 @@ Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: "ami-0715c1897453cabd1"
+      ImageId: "ami-0e820afa569e84cc1"
+#      ImageId: "ami-0715c1897453cabd1"
+#      ImageId: "ami-092b51d9008adea15"
       InstanceType: "t2.micro"
       KeyName: !Ref KeyPairName
       NetworkInterfaces:
@@ -156,6 +158,15 @@ Resources:
           #!/bin/bash
           sudo yum update -y
           sudo yum install -y java-17-amazon-corretto
+          sudo yum install git -y
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install gradle
+          cd /home/ec2-user
+          git clone https://github.com/jorgekamezawa/spring-boot-localstack.git 2>&1
+          echo "Git clone exit code: $?"
+          cd spring-boot-localstack
+          gradle clean build
       Tags:
         - Key: Name
           Value: "cloudformation-backend"
@@ -164,7 +175,7 @@ Resources:
   RDSPostgresSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "CloudformationRDSPostgresSecurityGroup"
+      GroupName: "CloudFormationRDSPostgresSecurityGroup"
       GroupDescription: "Security Group for PostgreSQL Database"
       VpcId: !Ref VPC
       SecurityGroupIngress:

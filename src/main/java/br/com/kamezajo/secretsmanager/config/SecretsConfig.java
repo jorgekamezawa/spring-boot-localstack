@@ -15,7 +15,7 @@ public class SecretsConfig {
     @Bean
     public AWSSecretsManager getSecretV1Prd() {
         return AWSSecretsManagerClientBuilder.standard()
-                .withRegion(Regions.US_EAST_1)
+                .withRegion(Regions.US_EAST_2)
                 .withCredentials(new DefaultAWSCredentialsProviderChain())
                 .build();
     }
